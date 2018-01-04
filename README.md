@@ -1,56 +1,81 @@
 # **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+## Project Goal
 
-Overview
+[//]: # (Image References)
+
+[original-images]: ./examples/Pipeline_Output/original_images.png "Original images"
+[grayscale-images]: ./examples/Pipeline_Output/grayscale_images.png "Results of the grayscale transformation"
+[gaussian-images]: ./examples/Pipeline_Output/gaussian_images.png "Results of the Gaussian blurring"
+[canny-images]: ./examples/Pipeline_Output/canny_images.png "Canny algorithm output"
+[roi-images]: ./examples/Pipeline_Output/roi_images.png "Results from clipping the image to focus only on our currrent lane"
+[overlaid-images]: ./examples/Pipeline_Output/overlaid_images.png "Final output of the lane detection pipeline"
+
+---
+The goal of this project was to make a pipeline that can identify road lanes using "classical" (i.e. pre-deep learning) techniques, such as Canny edge detection and Hough transforms. In this case, the Canny and Hough techniques were implemented using the Python [OpenCV](https://docs.opencv.org/2.4/index.html) package.
+
+In particular, this pipeline was required to successfully detect the lane lines on six images, two videos, and one video that has unique characteristics that increase the difficulty of successfully identifying the lane lines in it.  You can see the original six images below. The video annotations resulting from the pipeline can be found [here](https://www.youtube.com/watch?v=h9yxkKlpAZQ), [here](https://www.youtube.com/watch?v=tYHS5H19VYg), and [here](https://www.youtube.com/watch?v=ElnK4uAFvIY). 
+
+![alt text][original-images]
+
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+### Reflection
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
+### 1. Pipeline Description
 
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
-
-
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
-
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
+The pipeline consists of five steps:
+    1. Grayscale transformation
+    2. Gaussian blurring
+    3. Canny edge detection
+    4. Image clipping
+    5. Hough Line Transform
 
 
-The Project
----
+#### Step 1. Grayscale Transformation
+As some computer vision algorithms only work on black-and-white imagery (in this case the Canny algorithm), I first convert the image to grayscale. You can see the result of this transformation in the set of images below.
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+![alt text][grayscale-images]
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
 
-**Step 2:** Open the code in a Jupyter Notebook
+#### Step 2. Gaussian Blurring
+Then, I apply Gaussian blurring to the images in order to reduce noise in the images themselves.
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+![alt text][gaussian-images]
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
 
-`> jupyter notebook`
+#### Step 3. Canny Edge Detection
+After reducing the images' noisiness, the Canny algorithm is used to detect edges within the image. As you can see in the following results, we are able to see outlines for the lane lines that I am interested in tracking. However, Canny is also picking up the outlines for other objects and markings in the image.
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+![alt text][canny-images]
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+#### Step 4. Image Clipping
+To get around the problem I just described, the pipeline only looks at the lane we are currently in, and only up to a certain distance in front of the vehicle. This is achieved by simply clipping the image to focus on this region of interest.
 
+![alt text][roi-images]
+
+
+#### Step 5. Hough Line Transform
+The Hough Line Transform is an operation to detect straight lines. Thus, given the previous step's output, its output provides the coordinates indicating the location of the various lane line segments. Unfortunately, these are still just chunks of the lane. Rather than providing the location of the entire lane itself (as would interest a driver), it will show gaps between dashed lines and fail to recognize  those dashed lines as components of a complete lane. 
+
+That missing logic is completed by interpolating the lines location from the bottom of the image to the top of the region of interest. To do this, I first use the coordinates from the Hough transform to calculate that line's slope in order to determine whether it is part of the left lane or right lane (or whether it is part of a lane at all). Then, once all the lines have been assigned to a lane (or discarded), I calculate the average position of all lines within a lane. Using this average, I can then interpolate the function representing a given lane, and thereby determine its beginning and ending points within the region of interest. The pipeline then successfully detects the lane lines in the images.
+
+![alt text][overlaid-images]
+
+
+### 2. Potential Shortcoming with this Pipeline
+If you look at the images and watch the first two videos, you will probably notice similar image characteristics:
+    * No objects (e.g. vehicles, animals, people, etc.) are in the lane in front of the vehicle, and within the region of interest.
+    * The roads' color does not vary.
+    * Lanes are not unmarked.
+    * Similar weather conditions.
+    * Large shadows are not covering the vehicle's lane.
+    * Road markings are based on a California (i.e. United States) system.
+There are likely more characteristics that I have not mentioned, but you get the idea at this point. Any deviations from these characteristics would cause either the Canny edge detector or the Hough Line Transform to either miss lane lines or to have false positives that there are lane lines in some locations. When you watch the [third video](https://www.youtube.com/watch?v=ElnK4uAFvIY), you can see some of these issues affecting the lane line detector.
+
+
+### 3. Possible Improvements to the Pipeline
+There are ways to mitigate some of these shortcomings. One way would be to utilize a different color transformation early on in the pipeline that helps mitigate the issue of lighting (such as detecting yellow or white lanes). Another approach would be to collect a larger set of images under varying conditions and modify pipeline parameters to make it more generally robust across all these images. It is also possible that additional rules could be added to the pipeline that are only activated under certain road conditions.
+
+Unfortunately for all these potential improvements, we can clearly see that this quickly becomes a rule-based approach to lane line detection, which is difficult to maintain and ensure robustness across various driving situations. Ideally, we would want a way to detect lanes utilizing machine learning techniques...
